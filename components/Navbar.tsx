@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthProvider'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,9 +17,15 @@ import { LogOut, Settings, User } from 'lucide-react'
 
 export function Navbar() {
   const { user, signOut, loading } = useAuth()
+  const pathname = usePathname()
 
   const getInitials = (email: string) => {
     return email.charAt(0).toUpperCase()
+  }
+
+  // Hide navbar on password reset page for focused UX
+  if (pathname === '/reset-password') {
+    return null
   }
 
   return (

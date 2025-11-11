@@ -37,6 +37,53 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Check if this is a recovery session (password reset in progress)
+  let isRecoverySession = false
+  if (user) {
+    try {
+      // Get session to check authentication method
+      const { data } = await supabase.auth.getSession()
+      const session = data.session
+
+      if (session) {
+        // Check AMR (Authentication Methods Reference) claim
+        // Recovery sessions have amr[0].method === 'recovery'
+        const accessToken = session.access_token
+        if (accessToken) {
+          // Decode JWT payload to read AMR claim
+          const parts = accessToken.split('.')
+          if (parts.length === 3) {
+            const payload = JSON.parse(
+              Buffer.from(parts[1], 'base64url').toString()
+            )
+
+            // Check if authenticated via recovery method
+            if (Array.isArray(payload.amr) && payload.amr.length > 0) {
+              isRecoverySession = payload.amr[0].method === 'recovery'
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // If we can't determine session type, log error but continue
+      console.error('Error checking recovery session:', error)
+    }
+  }
+
+  // SECURITY: Restrict recovery sessions to only /reset-password
+  // Prevents authentication bypass where users could access dashboard without completing password reset
+  if (isRecoverySession) {
+    // Only allow access to reset-password page and auth routes
+    if (
+      !request.nextUrl.pathname.startsWith('/reset-password') &&
+      !request.nextUrl.pathname.startsWith('/auth/')
+    ) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/reset-password'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Protected routes check
   if (
     !user &&
@@ -51,8 +98,10 @@ export async function updateSession(request: NextRequest) {
   }
 
   // If user is logged in and tries to access auth pages, redirect to dashboard
+  // BUT: Don't redirect if they're in a recovery session
   if (
     user &&
+    !isRecoverySession &&
     (request.nextUrl.pathname === '/login' ||
       request.nextUrl.pathname === '/signup')
   ) {
