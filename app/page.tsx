@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Bot, TrendingUp, Zap, Shield } from 'lucide-react'
+import { HoverBorderGradient } from '@/components/ui/hover-border-gradient'
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -30,9 +31,17 @@ export default function Home() {
             {loading ? (
               <div className="h-10 w-32 animate-pulse bg-muted rounded-md" />
             ) : user ? (
-              <Button size="lg" asChild>
-                <Link href="/dashboard">Go to Dashboard</Link>
-              </Button>
+              // <Button size="lg" asChild>
+              //   <Link href="/dashboard">Go to Dashboard</Link>
+              // </Button>
+              <HoverBorderGradient
+                containerClassName="rounded-full"
+                as="button"
+                className="dark:bg-black bg-white text-black dark:text-white flex items-center gap-x-2"
+              >
+                <span>Go to Dashboard</span>
+                🤖
+              </HoverBorderGradient>
             ) : (
               <>
                 <Button size="lg" asChild>
@@ -123,9 +132,17 @@ export default function Home() {
               {loading ? (
                 <div className="h-10 w-32 animate-pulse bg-background/20 rounded-md" />
               ) : user ? (
-                <Button size="lg" variant="secondary" asChild>
-                  <Link href="/dashboard">Go to Dashboard</Link>
-                </Button>
+                // <Button size="lg" variant="secondary" asChild>
+                //   <Link href="/dashboard">Go to Dashboard</Link>
+                // </Button>
+                <HoverBorderGradient
+                  containerClassName="rounded-full"
+                  as="button"
+                  className="dark:bg-black bg-white text-black dark:text-white flex items-center space-x-2"
+                >
+                  {/* <AceternityLogo /> */}
+                  <span>Go to Dashboard</span>
+                </HoverBorderGradient>
               ) : (
                 <Button size="lg" variant="secondary" asChild>
                   <Link href="/signup">Create Free Account</Link>

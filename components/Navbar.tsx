@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { LogOut, Settings, User } from 'lucide-react'
 
 export function Navbar() {
@@ -49,6 +50,7 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center space-x-4">
+          <ThemeToggle />
           {loading ? (
             <div className="h-8 w-8 animate-pulse bg-muted rounded-full" />
           ) : user ? (
