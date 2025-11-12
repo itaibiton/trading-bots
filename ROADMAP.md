@@ -1,6 +1,6 @@
 # TradingBot Roadmap
 
-**Last Updated:** 2025-11-13
+**Last Updated:** 2025-11-13 (Design System Showcase Page completed - 27 components live)
 **Current Phase:** Phase 2 - Bot Management & AI Creation
 
 ---
@@ -22,6 +22,17 @@
 - [x] Add ThemeToggle to Navbar (~2 min) ✅ 2025-11-13
 - [-] Test theme switching (light, dark, system, persistence, no flash) (~10 min) 🏗️ 2025-11-13
 - [ ] Verify accessibility (keyboard navigation, screen readers) (~5 min)
+
+**Design System Showcase Page:**
+- [x] Install 21 essential shadcn components (~15 min) ✅ 2025-11-13
+- [x] Create page structure and layout (~20 min) ✅ 2025-11-13
+- [x] Build Form Components showcase (~30 min) ✅ 2025-11-13
+- [x] Build Feedback Components showcase (~20 min) ✅ 2025-11-13
+- [x] Build Overlay Components showcase (~25 min) ✅ 2025-11-13
+- [x] Build Data Display showcase (~20 min) ✅ 2025-11-13
+- [x] Build Navigation Components showcase (~15 min) ✅ 2025-11-13
+- [x] Build Theme showcase (~15 min) ✅ 2025-11-13
+- [x] Polish and responsive design (~20 min) ✅ 2025-11-13
 
 **Database & AI:**
 - [ ] Design complete database schema (bots, risk_configs, strategies, bot_logs, ai_conversations, profiles)
@@ -98,6 +109,13 @@
 
 ## Recently Completed (Last 7 Days)
 
+- [x] Complete Design System Showcase Page with 27 components (6 existing + 21 new) ✅ 2025-11-13
+- [x] Install 21 essential shadcn components ✅ 2025-11-13
+- [x] Build 6 component category showcases (Form, Feedback, Overlay, Data Display, Navigation, Theme) ✅ 2025-11-13
+- [x] Create public /design-system route with interactive demos ✅ 2025-11-13
+- [x] Theme System: Install next-themes and create ThemeProvider ✅ 2025-11-13
+- [x] Theme System: Create ThemeToggle component with Light/Dark/System options ✅ 2025-11-13
+- [x] Theme System: Add ThemeToggle to Navbar ✅ 2025-11-13
 - [x] Create custom Claude Code commands (/project, /phase2, /docs, /recent) ✅ 2025-11-13
 - [x] Update README.md with custom commands documentation ✅ 2025-11-13
 - [x] Fix critical authentication bypass vulnerability (recovery session isolation) ✅ 2025-11-12
@@ -165,6 +183,8 @@
 - Anthropic API key (need to create account and generate key)
 
 ### Recent Decisions
+- **2025-11-13:** Created comprehensive Design System Showcase Page with progressive approach (21 essential components first, expandable later)
+- **2025-11-13:** Made /design-system route publicly accessible for development reference (no auth required)
 - **2025-11-13:** Added dark/light mode support to Phase 2 using next-themes (industry standard, ~35 min implementation)
 - **2025-11-13:** Implemented 3-layer project manager architecture (SessionStart hooks + ROADMAP.md + PM subagent)
 - **2025-11-12:** Used JWT AMR claims for recovery session detection instead of URL parameters
@@ -180,6 +200,8 @@
 - Comprehensive documentation in place
 - Custom Claude Code commands created for efficiency
 - Project manager agent implemented for task tracking
+- Design System Showcase Page live at /design-system with 27 components across 6 categories
+- Theme system fully operational with dark/light/system modes
 
 ### Technical Decisions
 - Using Supabase for database and auth (PostgreSQL + RLS)
@@ -187,6 +209,8 @@
 - Next.js 15 App Router with React 19
 - TailwindCSS v4 with shadcn/ui components
 - Paper trading first, real trading in Phase 5
+- Design System: Progressive approach with 21 essential shadcn components first, expandable later
+- Design System Page: Publicly accessible at /design-system for development reference
 
 ### Success Criteria for Phase 2
 - Users can create bots via templates in < 3 minutes
