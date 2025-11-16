@@ -3,7 +3,8 @@
 import { useAuth } from '@/contexts/AuthProvider'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Bot, TrendingUp, Zap, Plus } from 'lucide-react'
+import { Bot, TrendingUp, Zap, Plus, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -17,6 +18,24 @@ export default function DashboardPage() {
           {user?.email}
         </p>
       </div>
+
+      {/* Live Trading Dashboard Link */}
+      <Card className="border-primary/50 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Live Trading Dashboard</span>
+            <Link href="/trading">
+              <Button variant="default">
+                View Dashboard
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardTitle>
+          <CardDescription>
+            Monitor your Binance account in real-time with live balance and P&L tracking
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
       {/* Quick Stats - Placeholder for Phase 2 */}
       <div className="grid gap-4 md:grid-cols-3">

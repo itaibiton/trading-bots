@@ -1,22 +1,24 @@
 /**
  * Chat Interface Component
  * Main AI chat interface for simple bot creation mode
+ * Now connected to real Claude AI API
  */
 
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AIMessage } from './AIMessage';
 import { UserMessage } from './UserMessage';
 import { TypingIndicator } from './TypingIndicator';
-import { ArrowLeft, Send } from 'lucide-react';
-import { useAIConversation } from '@/hooks/useBotCreation';
-import { generateAIResponse } from '@/lib/mock-data/ai-responses';
+import { ArrowLeft, Send, RefreshCw, AlertCircle } from 'lucide-react';
+import { useAIChat } from '@/hooks/useAIChat';
+import { useToast } from '@/hooks/use-toast';
 
 interface ChatInterfaceProps {
   onBack?: () => void;
@@ -27,16 +29,26 @@ interface ChatInterfaceProps {
 export function ChatInterface({ onBack, onComplete, onDataUpdate }: ChatInterfaceProps) {
   const {
     messages,
+    currentStep,
+    extractedData,
+    recommendations,
+    isAIThinking,
     isLoading,
-    conversationData,
-    addMessage,
-    updateConversationData,
-    setIsLoading,
-  } = useAIConversation();
+    error,
+    canRetry,
+    sendMessage,
+    selectQuickReply,
+    retryLastMessage,
+    resumeConversation,
+    clearError,
+  } = useAIChat();
 
+  const { toast } = useToast();
   const [inputValue, setInputValue] = useState('');
-  const [currentStep, setCurrentStep] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const hasInitializedRef = useRef(false);
+  const lastUpdateRef = useRef<string>('');
+  const completedRef = useRef(false);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -46,147 +58,106 @@ export function ChatInterface({ onBack, onComplete, onDataUpdate }: ChatInterfac
         scrollElement.scrollTop = scrollElement.scrollHeight;
       }
     }
-  }, [messages, isLoading]);
+  }, [messages, isAIThinking]);
 
-  // Send initial welcome message
+  // Initialize conversation on mount (runs only once)
   useEffect(() => {
-    if (messages.length === 0) {
-      const welcomeMessage = generateAIResponse(1);
-      addMessage('assistant', welcomeMessage.content);
+    const initConversation = async () => {
+      if (hasInitializedRef.current) return;
+      hasInitializedRef.current = true;
+
+      try {
+        // Try to resume existing conversation
+        const resumed = await resumeConversation();
+
+        if (!resumed) {
+          // No conversation to resume, start with welcome message
+          await sendMessage('I want to create a trading bot');
+        }
+      } catch (error) {
+        console.error('Failed to initialize conversation:', error);
+
+        // Clear any error states to allow retry
+        clearError();
+
+        toast({
+          title: 'Connection Error',
+          description: 'Failed to start conversation. Please refresh the page.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    initConversation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
+
+  // Update parent component when data changes (with deduplication)
+  useEffect(() => {
+    if (extractedData && onDataUpdate) {
+      const dataString = JSON.stringify(extractedData);
+      if (dataString !== lastUpdateRef.current && dataString !== '{}') {
+        lastUpdateRef.current = dataString;
+        onDataUpdate(extractedData);
+      }
     }
-  }, []);
+  }, [extractedData, onDataUpdate]);
+
+  // Handle completion (Step 5 with recommendations) - only fire once
+  useEffect(() => {
+    if (currentStep === 5 && recommendations.length > 0 && onComplete && !completedRef.current) {
+      completedRef.current = true;
+      // Pass recommendations to parent for bot selection
+      onComplete({
+        ...extractedData,
+        recommendations,
+      });
+    }
+  }, [currentStep, recommendations, extractedData, onComplete]);
 
   /**
    * Handle quick reply selection
    */
-  const handleQuickReply = (value: string, label: string) => {
-    // Add user message
-    addMessage('user', label);
-
-    // Update conversation data based on step
-    if (currentStep === 1) {
-      // User selected trading goal
-      updateConversationData({ goal: value });
-      onDataUpdate?.({ goal: value });
-      setTimeout(() => {
-        setIsLoading(true);
-        setTimeout(() => {
-          const aiResponse = generateAIResponse(2, value);
-          addMessage('assistant', aiResponse.content);
-          setIsLoading(false);
-          setCurrentStep(2);
-        }, 1000);
-      }, 300);
-    } else if (currentStep === 2) {
-      // User selected risk level
-      updateConversationData({ risk: value as any });
-      onDataUpdate?.({ risk: value as any });
-      setTimeout(() => {
-        setIsLoading(true);
-        setTimeout(() => {
-          const aiResponse = generateAIResponse(3);
-          addMessage('assistant', aiResponse.content);
-          setIsLoading(false);
-          setCurrentStep(3);
-        }, 1000);
-      }, 300);
-    } else if (currentStep === 3) {
-      // User selected capital amount
-      const capital = value === 'custom' ? null : parseFloat(value);
-      if (capital) {
-        updateConversationData({ capital });
-        onDataUpdate?.({ capital });
-        setTimeout(() => {
-          setIsLoading(true);
-          setTimeout(() => {
-            const aiResponse = generateAIResponse(
-              4,
-              conversationData.goal,
-              conversationData.risk
-            );
-            addMessage('assistant', aiResponse.content);
-            setIsLoading(false);
-            setCurrentStep(4);
-          }, 1000);
-        }, 300);
-      } else {
-        // Handle custom amount - show input
-        addMessage('assistant', 'Please enter your custom amount in USDT:');
-        setCurrentStep(3.5); // Sub-step for custom input
-      }
-    } else if (currentStep === 4) {
-      // User selected strategy
-      updateConversationData({ recommendedStrategy: value as any });
-      onDataUpdate?.({ strategy: value as any });
-      setTimeout(() => {
-        setIsLoading(true);
-        setTimeout(() => {
-          const summaryMessage = `Perfect! Let me set up your bot with safe defaults.
-
-**Your Bot Configuration:**
-• Strategy: ${value}
-• Trading Pair: BTC/USDT
-• Capital: $${conversationData.capital}
-• Risk Level: ${conversationData.risk}
-• Trading Mode: Paper (virtual money)
-
-Ready to create your bot?`;
-          addMessage('assistant', summaryMessage);
-          setIsLoading(false);
-          setCurrentStep(5);
-        }, 1500);
-      }, 300);
-    } else if (currentStep === 5) {
-      // Final step - create bot
-      if (value === 'create' && onComplete) {
-        onComplete(conversationData);
-      }
+  const handleQuickReply = async (value: string, label: string) => {
+    try {
+      // Use the quick reply object from AI response
+      await selectQuickReply({ id: value, label, value });
+    } catch (error) {
+      console.error('Failed to send quick reply:', error);
+      toast({
+        title: 'Failed to send message',
+        description: 'Please try again or type your message manually.',
+        variant: 'destructive',
+      });
     }
   };
 
   /**
    * Handle strategy selection from cards
    */
-  const handleStrategySelect = (strategyType: string, strategyName: string) => {
-    handleQuickReply(strategyType, strategyName);
+  const handleStrategySelect = async (strategyType: string, strategyName: string) => {
+    await handleQuickReply(strategyType, strategyName);
   };
 
   /**
    * Handle manual text input
    */
-  const handleSendMessage = () => {
-    if (!inputValue.trim()) return;
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || isAIThinking) return;
 
-    addMessage('user', inputValue);
-
-    // Handle custom capital input
-    if (currentStep === 3.5) {
-      const capital = parseFloat(inputValue);
-      if (!isNaN(capital) && capital >= 10) {
-        updateConversationData({ capital });
-        onDataUpdate?.({ capital });
-        setInputValue('');
-        setTimeout(() => {
-          setIsLoading(true);
-          setTimeout(() => {
-            const aiResponse = generateAIResponse(
-              4,
-              conversationData.goal,
-              conversationData.risk
-            );
-            addMessage('assistant', aiResponse.content);
-            setIsLoading(false);
-            setCurrentStep(4);
-          }, 1000);
-        }, 300);
-      } else {
-        setTimeout(() => {
-          addMessage('assistant', 'Please enter a valid amount (minimum $10):');
-        }, 500);
-      }
-    }
-
+    const message = inputValue.trim();
     setInputValue('');
+
+    try {
+      await sendMessage(message);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      toast({
+        title: 'Failed to send message',
+        description: 'Your message could not be sent. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   /**
@@ -199,19 +170,13 @@ Ready to create your bot?`;
     }
   };
 
-  // Get the last AI message for rendering
-  const lastAIMessage = messages
-    .slice()
-    .reverse()
-    .find((msg) => msg.role === 'assistant');
-
-  const lastAIMessageWithReplies = lastAIMessage
-    ? generateAIResponse(
-        currentStep,
-        conversationData.goal,
-        conversationData.risk
-      )
-    : null;
+  /**
+   * Handle retry button click
+   */
+  const handleRetry = async () => {
+    clearError();
+    await retryLastMessage();
+  };
 
   return (
     <Card className="h-full flex flex-col">
@@ -231,27 +196,28 @@ Ready to create your bot?`;
       <CardContent className="flex-1 p-0 overflow-hidden">
         <ScrollArea ref={scrollRef} className="h-full">
           <div className="p-6 space-y-4">
-            {messages.map((message, index) => {
-              if (message.role === 'assistant') {
-                // Only show quick replies on the last AI message
-                const isLastAI =
-                  index ===
-                  messages.length -
-                    1 -
-                    messages
-                      .slice(index + 1)
-                      .findIndex((m) => m.role === 'assistant');
+            {/* Loading State */}
+            {isLoading && messages.length === 0 && (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center space-y-3">
+                  <RefreshCw className="size-8 animate-spin mx-auto text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Initializing conversation...</p>
+                  <p className="text-xs text-muted-foreground/60">
+                    Taking too long? Try refreshing the page.
+                  </p>
+                </div>
+              </div>
+            )}
 
+            {/* Messages */}
+            {messages.map((message, index) => {
+              const isLastMessage = index === messages.length - 1;
+
+              if (message.role === 'assistant') {
                 return (
                   <AIMessage
-                    key={`${message.role}-${index}`}
-                    message={{
-                      ...message,
-                      quickReplies:
-                        isLastAI && lastAIMessageWithReplies?.quickReplies
-                          ? lastAIMessageWithReplies.quickReplies
-                          : undefined,
-                    }}
+                    key={message.id || `assistant-${index}`}
+                    message={message}
                     onQuickReply={handleQuickReply}
                     onStrategySelect={handleStrategySelect}
                   />
@@ -259,7 +225,7 @@ Ready to create your bot?`;
               } else {
                 return (
                   <UserMessage
-                    key={`${message.role}-${index}`}
+                    key={message.id || `user-${index}`}
                     content={message.content}
                     timestamp={message.timestamp}
                   />
@@ -267,9 +233,30 @@ Ready to create your bot?`;
               }
             })}
 
+            {/* Error Alert */}
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="size-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>{error}</span>
+                  {canRetry && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRetry}
+                      className="ml-4"
+                    >
+                      <RefreshCw className="size-3 mr-1" />
+                      Retry
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Typing Indicator */}
             <AnimatePresence>
-              {isLoading && <TypingIndicator />}
+              {isAIThinking && <TypingIndicator />}
             </AnimatePresence>
           </div>
         </ScrollArea>
@@ -279,23 +266,25 @@ Ready to create your bot?`;
       <div className="border-t p-4 shrink-0">
         <div className="flex items-center gap-2">
           <Input
-            placeholder="Type your message..."
+            placeholder={isAIThinking ? 'AI is typing...' : 'Type your message...'}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={isLoading}
+            disabled={isAIThinking || isLoading}
             className="flex-1"
           />
           <Button
             size="icon"
             onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isLoading}
+            disabled={!inputValue.trim() || isAIThinking || isLoading}
           >
             <Send className="size-4" />
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          Press Enter to send, or click the quick reply buttons above
+          {isAIThinking
+            ? 'AI is thinking...'
+            : 'Press Enter to send, or click the quick reply buttons above'}
         </p>
       </div>
     </Card>
