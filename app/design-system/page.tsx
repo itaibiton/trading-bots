@@ -7,6 +7,7 @@ import FormComponents from '@/components/design-system/sections/FormComponents'
 import FeedbackComponents from '@/components/design-system/sections/FeedbackComponents'
 import OverlayComponents from '@/components/design-system/sections/OverlayComponents'
 import DataDisplay from '@/components/design-system/sections/DataDisplay'
+import ChartComponents from '@/components/design-system/sections/ChartComponents'
 import NavigationComponents from '@/components/design-system/sections/NavigationComponents'
 import ThemeShowcase from '@/components/design-system/sections/ThemeShowcase'
 import { Toaster } from '@/components/ui/sonner'
@@ -129,6 +130,15 @@ export default function DesignSystemPage() {
                 description="Components for presenting data and information clearly."
               >
                 <DataDisplay />
+              </ShowcaseSection>
+
+              {/* Charts Section */}
+              <ShowcaseSection
+                id="charts"
+                title="Charts"
+                description="Visualizations for data trends and statistics."
+              >
+                <ChartComponents />
               </ShowcaseSection>
 
               {/* Navigation Section */}

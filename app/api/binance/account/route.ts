@@ -135,7 +135,7 @@ async function fetchBinanceDataDirect() {
     canWithdraw: accountInfo.canWithdraw,
     canDeposit: accountInfo.canDeposit,
     updateTime: accountInfo.updateTime,
-    accountType: accountInfo.accountType,
+    accountType: accountInfo.accoountType, // Note: Binance SDK has typo in type
     permissions: accountInfo.permissions,
   }
 }

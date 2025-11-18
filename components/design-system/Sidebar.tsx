@@ -17,6 +17,7 @@ const sections: SidebarLink[] = [
   { id: 'feedback', title: 'Feedback' },
   { id: 'overlay', title: 'Overlay' },
   { id: 'data-display', title: 'Data Display' },
+  { id: 'charts', title: 'Charts' },
   { id: 'navigation', title: 'Navigation' },
   { id: 'theme', title: 'Theme' },
 ]

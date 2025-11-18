@@ -1,24 +1,25 @@
 /**
  * Trading Dashboard Page
  *
- * Displays live Binance trading data:
+ * Displays live Binance trading data and paper trading functionality:
  * - Connection status
- * - Account balance (all assets)
- * - P&L (Profit & Loss)
- * - Real-time updates every 30 seconds
+ * - Paper trading balance and form
+ * - Trade history
+ * - Real-time market data
  */
 
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
 import { useBinanceAccount } from '@/hooks/useBinanceAccount'
 import { ConnectionStatus } from '@/components/binance/ConnectionStatus'
-import { AccountBalanceCard } from '@/components/binance/AccountBalanceCard'
-import { PnLCard } from '@/components/binance/PnLCard'
 import { CryptoTicker } from '@/components/trading/CryptoTicker'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Wallet, TrendingUp, AlertCircle } from 'lucide-react'
-import { formatCurrency } from '@/lib/binance/utils'
+import { TradingForm } from '@/components/trading/TradingForm'
+import { PaperBalanceCard } from '@/components/trading/PaperBalanceCard'
+import { TradeHistory } from '@/components/trading/TradeHistory'
+import { AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { createClient } from '@/lib/supabase/client'
 
 export default function TradingPage() {
   const {
@@ -33,13 +34,54 @@ export default function TradingPage() {
     refreshInterval: 30000, // 30 seconds
   })
 
+  // Paper trading state
+  const [paperBalance, setPaperBalance] = useState<number>(10000)
+  const [balanceLoading, setBalanceLoading] = useState(true)
+  const [tradeRefreshTrigger, setTradeRefreshTrigger] = useState(0)
+
+  // Fetch paper balance from profile
+  const fetchPaperBalance = useCallback(async () => {
+    setBalanceLoading(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('paper_balance')
+          .eq('id', user.id)
+          .single()
+
+        if (profile) {
+          setPaperBalance(profile.paper_balance || 10000)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch paper balance:', err)
+    } finally {
+      setBalanceLoading(false)
+    }
+  }, [])
+
+  // Load paper balance on mount
+  useEffect(() => {
+    fetchPaperBalance()
+  }, [fetchPaperBalance])
+
+  // Handle trade completion - refresh balance and history
+  const handleTradeComplete = () => {
+    fetchPaperBalance()
+    setTradeRefreshTrigger(prev => prev + 1)
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Binance Live Trading</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Trading</h1>
         <p className="text-muted-foreground mt-2">
-          Monitor your Binance account in real-time
+          Paper trade with real market data from Binance
         </p>
       </div>
 
@@ -60,128 +102,36 @@ export default function TradingPage() {
         </Alert>
       )}
 
-      {/* Quick Stats */}
-      {!loading && accountInfo && (
-        <div className="grid gap-4 md:grid-cols-3">
-          {/* Total Balance */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(accountInfo.totalBalance)}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Across {accountInfo.balances.length} assets
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Total P&L */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total P&L</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatCurrency(accountInfo.totalPnL)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {accountInfo.pnlPercentage >= 0 ? '+' : ''}
-                {accountInfo.pnlPercentage.toFixed(2)}% all time
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Account Type */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Account Type</CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold capitalize">
-                {accountInfo.accountType}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {accountInfo.permissions.join(', ')}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* Real-Time Market Overview */}
       <CryptoTicker />
 
       {/* Main Content - Two Column Layout */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Left Column: Account Balance */}
-        <AccountBalanceCard
-          totalBalance={accountInfo?.totalBalance || '0'}
-          balances={accountInfo?.balances || []}
-          loading={loading}
-        />
+      <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
+        {/* Left Column: Trading Form & History */}
+        <div className="space-y-6">
+          {/* Paper Balance Card */}
+          <PaperBalanceCard
+            balance={paperBalance}
+            loading={balanceLoading}
+            onRefresh={fetchPaperBalance}
+          />
 
-        {/* Right Column: P&L */}
-        <PnLCard
-          totalPnL={accountInfo?.totalPnL || '0'}
-          unrealizedPnL={accountInfo?.unrealizedPnL || '0'}
-          realizedPnL={accountInfo?.realizedPnL || '0'}
-          pnlPercentage={accountInfo?.pnlPercentage || 0}
-          loading={loading}
-        />
+          {/* Trade History */}
+          <TradeHistory refreshTrigger={tradeRefreshTrigger} />
+        </div>
+
+        {/* Right Column: Trading Form */}
+        <div className="lg:sticky lg:top-6">
+          <TradingForm
+            paperBalance={paperBalance}
+            onTradeComplete={handleTradeComplete}
+          />
+        </div>
       </div>
-
-      {/* Trading Permissions */}
-      {!loading && accountInfo && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Permissions</CardTitle>
-            <CardDescription>Your Binance API key capabilities</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="flex items-center gap-2">
-                <div
-                  className={`h-3 w-3 rounded-full ${
-                    accountInfo.canTrade ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-700'
-                  }`}
-                />
-                <span className="text-sm">Trading</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div
-                  className={`h-3 w-3 rounded-full ${
-                    accountInfo.canWithdraw ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-700'
-                  }`}
-                />
-                <span className="text-sm">Withdraw</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div
-                  className={`h-3 w-3 rounded-full ${
-                    accountInfo.canDeposit ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-700'
-                  }`}
-                />
-                <span className="text-sm">Deposit</span>
-              </div>
-            </div>
-
-            {!accountInfo.canWithdraw && (
-              <p className="text-xs text-muted-foreground mt-4">
-                <strong>Security Recommendation:</strong> Withdrawal permission is disabled for safety.
-                This is the recommended configuration for trading bots.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Auto-refresh Info */}
       <div className="text-center text-xs text-muted-foreground">
-        Data automatically refreshes every 30 seconds
+        Market prices refresh every 10 seconds
       </div>
     </div>
   )

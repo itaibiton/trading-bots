@@ -12,13 +12,25 @@ ADD COLUMN IF NOT EXISTS ai_conversations_limit INTEGER DEFAULT 3 NOT NULL,
 ADD COLUMN IF NOT EXISTS subscription_tier TEXT DEFAULT 'starter' NOT NULL CHECK (subscription_tier IN ('starter', 'pro', 'enterprise')),
 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL;
 
--- Add constraints
-ALTER TABLE profiles
-ADD CONSTRAINT profiles_paper_balance_positive CHECK (paper_balance >= 0),
-ADD CONSTRAINT profiles_paper_balance_allocated_positive CHECK (paper_balance_allocated >= 0),
-ADD CONSTRAINT profiles_paper_balance_allocated_lte_balance CHECK (paper_balance_allocated <= paper_balance),
-ADD CONSTRAINT profiles_ai_conversations_used_nonnegative CHECK (ai_conversations_used >= 0),
-ADD CONSTRAINT profiles_ai_conversations_limit_positive CHECK (ai_conversations_limit > 0);
+-- Add constraints (only if they don't exist)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_paper_balance_positive') THEN
+    ALTER TABLE profiles ADD CONSTRAINT profiles_paper_balance_positive CHECK (paper_balance >= 0);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_paper_balance_allocated_positive') THEN
+    ALTER TABLE profiles ADD CONSTRAINT profiles_paper_balance_allocated_positive CHECK (paper_balance_allocated >= 0);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_paper_balance_allocated_lte_balance') THEN
+    ALTER TABLE profiles ADD CONSTRAINT profiles_paper_balance_allocated_lte_balance CHECK (paper_balance_allocated <= paper_balance);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_ai_conversations_used_nonnegative') THEN
+    ALTER TABLE profiles ADD CONSTRAINT profiles_ai_conversations_used_nonnegative CHECK (ai_conversations_used >= 0);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_ai_conversations_limit_positive') THEN
+    ALTER TABLE profiles ADD CONSTRAINT profiles_ai_conversations_limit_positive CHECK (ai_conversations_limit > 0);
+  END IF;
+END $$;
 
 -- Create index for subscription tier queries
 CREATE INDEX IF NOT EXISTS idx_profiles_subscription_tier ON profiles(subscription_tier);
@@ -32,6 +44,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
 CREATE TRIGGER update_profiles_updated_at
   BEFORE UPDATE ON profiles
   FOR EACH ROW
@@ -42,11 +55,13 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for profiles
 -- Users can only read/update their own profile
+DROP POLICY IF EXISTS "Users can view their own profile" ON profiles;
 CREATE POLICY "Users can view their own profile"
   ON profiles
   FOR SELECT
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
 CREATE POLICY "Users can update their own profile"
   ON profiles
   FOR UPDATE

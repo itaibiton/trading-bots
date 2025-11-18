@@ -1,32 +1,36 @@
 /**
  * Simple Mode (AI-Guided) Bot Creation Page
- * Split-screen layout: Preview (35%) | Chat (65%)
+ * Split-screen layout: Chat (60%) | Preview (40%)
  */
 
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChatInterface } from '@/components/bot-creation/simple/ChatInterface';
 import { BotPreview } from '@/components/bot-creation/simple/BotPreview';
-import { RiskLevel, StrategyType } from '@/types/bot';
-import { toast } from 'sonner';
+import { useAIConversation } from '@/hooks/useAIConversation';
+import { SuccessCelebration } from '@/components/bot-creation/SuccessCelebration';
+import { useState } from 'react';
+import type { RiskLevel, StrategyType } from '@/types/bot';
 
 export default function SimpleBotCreationPage() {
   const router = useRouter();
-  const [previewData, setPreviewData] = useState<{
-    goal?: string;
-    risk?: RiskLevel;
-    capital?: number;
-    strategy?: StrategyType;
-  }>({});
+  const {
+    messages,
+    currentConfig,
+    currentStep,
+    isComplete,
+    readyToDeploy,
+    isLoading,
+    tradingGoal,
+    experienceLevel,
+    riskTolerance,
+    sendMessage,
+    restart,
+    deployBot,
+  } = useAIConversation();
 
-  /**
-   * Handle preview data updates from chat
-   */
-  const handleDataUpdate = (data: Partial<typeof previewData>) => {
-    setPreviewData((prev) => ({ ...prev, ...data }));
-  };
+  const [showSuccess, setShowSuccess] = useState(false);
 
   /**
    * Handle navigation back to mode selection
@@ -36,34 +40,34 @@ export default function SimpleBotCreationPage() {
   };
 
   /**
-   * Handle bot creation completion
+   * Handle bot deployment
    */
-  const handleComplete = async (conversationData: any) => {
-    try {
-      // Update preview with final data
-      setPreviewData({
-        goal: conversationData.goal,
-        risk: conversationData.risk,
-        capital: conversationData.capital,
-        strategy: conversationData.recommendedStrategy,
-      });
+  const handleDeploy = async () => {
+    await deployBot();
+    setShowSuccess(true);
+  };
 
-      // TODO: In Phase 2, make API call to create bot
-      // For now, simulate success
-      toast.success('Bot created successfully!', {
-        description: 'Your trading bot has been created and is ready to use.',
-      });
+  /**
+   * Handle viewing bot after creation
+   */
+  const handleViewBot = () => {
+    router.push('/dashboard');
+  };
 
-      // Navigate to bot details page (will be implemented in Phase 2)
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1500);
-    } catch (error) {
-      console.error('Error creating bot:', error);
-      toast.error('Failed to create bot', {
-        description: 'Please try again or contact support if the issue persists.',
-      });
-    }
+  /**
+   * Handle creating another bot
+   */
+  const handleCreateAnother = async () => {
+    setShowSuccess(false);
+    await restart();
+  };
+
+  // Extract preview data from conversation state and config
+  const previewData = {
+    goal: tradingGoal,
+    risk: currentConfig.riskLevel as RiskLevel | undefined,
+    capital: currentConfig.capitalAllocated,
+    strategy: currentConfig.strategyType as StrategyType | undefined,
   };
 
   return (
@@ -72,31 +76,65 @@ export default function SimpleBotCreationPage() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">Create Bot - AI Guided</h1>
         <p className="text-muted-foreground mt-1">
-          Answer a few questions and let our AI recommend the perfect strategy for you.
+          Chat with our AI assistant to create the perfect trading bot for your goals
         </p>
       </div>
 
       {/* Split Screen Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[35%_1fr] gap-6 h-[calc(100vh-12rem)]">
-        {/* Left Side - Bot Preview (35%) */}
-        <div className="order-2 lg:order-1 h-full min-h-[400px] lg:min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[60%_1fr] gap-6 h-[calc(100vh-12rem)]">
+        {/* Chat Interface (60%) */}
+        <div className="h-full min-h-[600px] lg:min-h-0">
+          <ChatInterface
+            messages={messages}
+            currentStep={currentStep}
+            isLoading={isLoading}
+            onSendMessage={sendMessage}
+            onRestart={restart}
+            onBack={handleBack}
+          />
+        </div>
+
+        {/* Bot Preview (40%) */}
+        <div className="h-full min-h-[400px] lg:min-h-0">
           <BotPreview
             goal={previewData.goal}
             risk={previewData.risk}
             capital={previewData.capital}
             strategy={previewData.strategy}
+            currentStep={currentStep}
           />
-        </div>
 
-        {/* Right Side - Chat Interface (65%) */}
-        <div className="order-1 lg:order-2 h-full min-h-[600px] lg:min-h-0">
-          <ChatInterface
-            onBack={handleBack}
-            onComplete={handleComplete}
-            onDataUpdate={handleDataUpdate}
-          />
+          {/* Deploy Button (shown when ready) */}
+          {readyToDeploy && (
+            <div className="mt-4">
+              <button
+                onClick={handleDeploy}
+                disabled={isLoading}
+                className="w-full py-3 px-6 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Deploying...' : 'Deploy Bot 🚀'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Success Celebration Modal */}
+      {showSuccess && (
+        <SuccessCelebration
+          isOpen={showSuccess}
+          onClose={() => setShowSuccess(false)}
+          botData={{
+            name: currentConfig.name || 'My Trading Bot',
+            strategyType: currentConfig.strategyType || 'dca',
+            riskLevel: currentConfig.riskLevel || 'medium',
+            capitalAllocated: currentConfig.capitalAllocated || 1000,
+            botId: 'new-bot', // Will be set after deployment
+          }}
+          onViewBot={handleViewBot}
+          onCreateAnother={handleCreateAnother}
+        />
+      )}
     </div>
   );
 }

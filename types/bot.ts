@@ -297,3 +297,48 @@ export interface ValidationError {
   field: string;
   message: string;
 }
+
+/**
+ * Conversation Message (New AI Chat System)
+ */
+export interface ConversationMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+  quickReplies?: string[];
+  configUpdate?: Record<string, any>;
+  validation?: {
+    type: 'info' | 'warning' | 'error';
+    message: string;
+    allowProceed: boolean;
+  };
+}
+
+/**
+ * Conversation State (New AI Chat System)
+ */
+export interface ConversationState {
+  id: string;
+  userId: string;
+  botId?: string;
+  currentStep: number;
+  isComplete: boolean;
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
+  tradingGoal?: string;
+  riskTolerance?: 'low' | 'medium' | 'high';
+  config: Partial<BotCreationData> & { readyToDeploy?: boolean };
+  messages: ConversationMessage[];
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+}
+
+/**
+ * Bot Configuration (used during creation)
+ */
+export interface BotConfig extends BotCreationData {
+  // Additional fields that might be needed during conversation
+  trailingStopEnabled?: boolean;
+  leverage?: number;
+}

@@ -1,292 +1,233 @@
 /**
  * Chat Interface Component
- * Main AI chat interface for simple bot creation mode
- * Now connected to real Claude AI API
+ *
+ * Main chat UI for AI-guided bot creation
  */
 
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AIMessage } from './AIMessage';
-import { UserMessage } from './UserMessage';
-import { TypingIndicator } from './TypingIndicator';
-import { ArrowLeft, Send, RefreshCw, AlertCircle } from 'lucide-react';
-import { useAIChat } from '@/hooks/useAIChat';
-import { useToast } from '@/hooks/use-toast';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Send, RotateCcw, Sparkles, Bot, User } from 'lucide-react';
+import type { ConversationMessage } from '@/types/bot';
+import { cn } from '@/lib/utils';
 
-interface ChatInterfaceProps {
-  onBack?: () => void;
-  onComplete?: (data: any) => void;
-  onDataUpdate?: (data: any) => void;
+export interface ChatInterfaceProps {
+  messages: ConversationMessage[];
+  currentStep: number;
+  isLoading: boolean;
+  onSendMessage: (message: string) => void;
+  onRestart: () => void;
+  onBack: () => void;
 }
 
-export function ChatInterface({ onBack, onComplete, onDataUpdate }: ChatInterfaceProps) {
-  const {
-    messages,
-    currentStep,
-    extractedData,
-    recommendations,
-    isAIThinking,
-    isLoading,
-    error,
-    canRetry,
-    sendMessage,
-    selectQuickReply,
-    retryLastMessage,
-    resumeConversation,
-    clearError,
-  } = useAIChat();
+export function ChatInterface({
+  messages,
+  currentStep,
+  isLoading,
+  onSendMessage,
+  onRestart,
+  onBack,
+}: ChatInterfaceProps) {
+  const [input, setInput] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { toast } = useToast();
-  const [inputValue, setInputValue] = useState('');
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const hasInitializedRef = useRef(false);
-  const lastUpdateRef = useRef<string>('');
-  const completedRef = useRef(false);
-
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom
   useEffect(() => {
-    if (scrollRef.current) {
-      const scrollElement = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollElement) {
-        scrollElement.scrollTop = scrollElement.scrollHeight;
-      }
-    }
-  }, [messages, isAIThinking]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  // Initialize conversation on mount (runs only once)
-  useEffect(() => {
-    const initConversation = async () => {
-      if (hasInitializedRef.current) return;
-      hasInitializedRef.current = true;
+  const handleSend = () => {
+    if (!input.trim() || isLoading) return;
 
-      try {
-        // Try to resume existing conversation
-        const resumed = await resumeConversation();
-
-        if (!resumed) {
-          // No conversation to resume, start with welcome message
-          await sendMessage('I want to create a trading bot');
-        }
-      } catch (error) {
-        console.error('Failed to initialize conversation:', error);
-
-        // Clear any error states to allow retry
-        clearError();
-
-        toast({
-          title: 'Connection Error',
-          description: 'Failed to start conversation. Please refresh the page.',
-          variant: 'destructive',
-        });
-      }
-    };
-
-    initConversation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once on mount
-
-  // Update parent component when data changes (with deduplication)
-  useEffect(() => {
-    if (extractedData && onDataUpdate) {
-      const dataString = JSON.stringify(extractedData);
-      if (dataString !== lastUpdateRef.current && dataString !== '{}') {
-        lastUpdateRef.current = dataString;
-        onDataUpdate(extractedData);
-      }
-    }
-  }, [extractedData, onDataUpdate]);
-
-  // Handle completion (Step 5 with recommendations) - only fire once
-  useEffect(() => {
-    if (currentStep === 5 && recommendations.length > 0 && onComplete && !completedRef.current) {
-      completedRef.current = true;
-      // Pass recommendations to parent for bot selection
-      onComplete({
-        ...extractedData,
-        recommendations,
-      });
-    }
-  }, [currentStep, recommendations, extractedData, onComplete]);
-
-  /**
-   * Handle quick reply selection
-   */
-  const handleQuickReply = async (value: string, label: string) => {
-    try {
-      // Use the quick reply object from AI response
-      await selectQuickReply({ id: value, label, value });
-    } catch (error) {
-      console.error('Failed to send quick reply:', error);
-      toast({
-        title: 'Failed to send message',
-        description: 'Please try again or type your message manually.',
-        variant: 'destructive',
-      });
-    }
+    onSendMessage(input.trim());
+    setInput('');
   };
 
-  /**
-   * Handle strategy selection from cards
-   */
-  const handleStrategySelect = async (strategyType: string, strategyName: string) => {
-    await handleQuickReply(strategyType, strategyName);
-  };
-
-  /**
-   * Handle manual text input
-   */
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || isAIThinking) return;
-
-    const message = inputValue.trim();
-    setInputValue('');
-
-    try {
-      await sendMessage(message);
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      toast({
-        title: 'Failed to send message',
-        description: 'Your message could not be sent. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  /**
-   * Handle Enter key press
-   */
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      handleSend();
     }
   };
 
-  /**
-   * Handle retry button click
-   */
-  const handleRetry = async () => {
-    clearError();
-    await retryLastMessage();
+  const handleQuickReply = (reply: string) => {
+    if (isLoading) return;
+    onSendMessage(reply);
   };
+
+  // Get the last AI message's quick replies
+  const lastAiMessage = [...messages].reverse().find((m) => m.role === 'assistant');
+  const quickReplies = lastAiMessage?.quickReplies || [];
 
   return (
     <Card className="h-full flex flex-col">
       {/* Header */}
-      <CardHeader className="border-b shrink-0">
+      <div className="border-b p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {onBack && (
-            <Button variant="ghost" size="icon-sm" onClick={onBack}>
-              <ArrowLeft className="size-4" />
-            </Button>
-          )}
-          <CardTitle className="text-lg">AI Assistant</CardTitle>
+          <Button variant="ghost" size="icon" onClick={onBack}>
+            <ArrowLeft className="size-4" />
+          </Button>
+          <div>
+            <h2 className="font-semibold flex items-center gap-2">
+              <Sparkles className="size-4 text-primary" />
+              AI-Guided Bot Creation
+            </h2>
+            <p className="text-sm text-muted-foreground">Step {currentStep}/5</p>
+          </div>
         </div>
-      </CardHeader>
+        <Button variant="ghost" size="sm" onClick={onRestart}>
+          <RotateCcw className="size-4 mr-2" />
+          Restart
+        </Button>
+      </div>
 
-      {/* Messages Area */}
-      <CardContent className="flex-1 p-0 overflow-hidden">
-        <ScrollArea ref={scrollRef} className="h-full">
-          <div className="p-6 space-y-4">
-            {/* Loading State */}
-            {isLoading && messages.length === 0 && (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-center space-y-3">
-                  <RefreshCw className="size-8 animate-spin mx-auto text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Initializing conversation...</p>
-                  <p className="text-xs text-muted-foreground/60">
-                    Taking too long? Try refreshing the page.
-                  </p>
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <AnimatePresence mode="popLayout">
+          {messages.map((message, index) => (
+            <MessageBubble key={message.id} message={message} index={index} />
+          ))}
+        </AnimatePresence>
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-start gap-3"
+          >
+            <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Bot className="size-4 text-primary" />
+            </div>
+            <div className="flex-1">
+              <div className="inline-block px-4 py-3 rounded-2xl bg-muted">
+                <div className="flex gap-1">
+                  <div className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.3s]" />
+                  <div className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.15s]" />
+                  <div className="size-2 rounded-full bg-muted-foreground/50 animate-bounce" />
                 </div>
               </div>
-            )}
+            </div>
+          </motion.div>
+        )}
 
-            {/* Messages */}
-            {messages.map((message, index) => {
-              const isLastMessage = index === messages.length - 1;
+        <div ref={messagesEndRef} />
+      </div>
 
-              if (message.role === 'assistant') {
-                return (
-                  <AIMessage
-                    key={message.id || `assistant-${index}`}
-                    message={message}
-                    onQuickReply={handleQuickReply}
-                    onStrategySelect={handleStrategySelect}
-                  />
-                );
-              } else {
-                return (
-                  <UserMessage
-                    key={message.id || `user-${index}`}
-                    content={message.content}
-                    timestamp={message.timestamp}
-                  />
-                );
-              }
-            })}
-
-            {/* Error Alert */}
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="size-4" />
-                <AlertDescription className="flex items-center justify-between">
-                  <span>{error}</span>
-                  {canRetry && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRetry}
-                      className="ml-4"
-                    >
-                      <RefreshCw className="size-3 mr-1" />
-                      Retry
-                    </Button>
-                  )}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Typing Indicator */}
-            <AnimatePresence>
-              {isAIThinking && <TypingIndicator />}
-            </AnimatePresence>
+      {/* Quick Replies */}
+      {quickReplies.length > 0 && !isLoading && (
+        <div className="px-4 pb-3">
+          <div className="flex flex-wrap gap-2">
+            {quickReplies.map((reply, index) => (
+              <Button
+                key={index}
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickReply(reply)}
+                className="text-sm"
+              >
+                {reply}
+              </Button>
+            ))}
           </div>
-        </ScrollArea>
-      </CardContent>
+        </div>
+      )}
 
-      {/* Input Area */}
-      <div className="border-t p-4 shrink-0">
-        <div className="flex items-center gap-2">
+      {/* Input */}
+      <div className="border-t p-4">
+        <div className="flex gap-2">
           <Input
-            placeholder={isAIThinking ? 'AI is typing...' : 'Type your message...'}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Type your message..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={isAIThinking || isLoading}
+            disabled={isLoading}
             className="flex-1"
           />
-          <Button
-            size="icon"
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isAIThinking || isLoading}
-          >
+          <Button onClick={handleSend} disabled={!input.trim() || isLoading}>
             <Send className="size-4" />
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          {isAIThinking
-            ? 'AI is thinking...'
-            : 'Press Enter to send, or click the quick reply buttons above'}
-        </p>
       </div>
     </Card>
+  );
+}
+
+/**
+ * Message Bubble Component
+ */
+interface MessageBubbleProps {
+  message: ConversationMessage;
+  index: number;
+}
+
+function MessageBubble({ message, index }: MessageBubbleProps) {
+  const isUser = message.role === 'user';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ delay: index * 0.05 }}
+      className={cn('flex items-start gap-3', isUser && 'flex-row-reverse')}
+    >
+      {/* Avatar */}
+      <div
+        className={cn(
+          'size-8 rounded-full flex items-center justify-center flex-shrink-0',
+          isUser ? 'bg-primary text-primary-foreground' : 'bg-primary/10'
+        )}
+      >
+        {isUser ? <User className="size-4" /> : <Bot className="size-4 text-primary" />}
+      </div>
+
+      {/* Message Content */}
+      <div className={cn('flex-1 max-w-[80%]', isUser && 'flex flex-col items-end')}>
+        <div
+          className={cn(
+            'inline-block px-4 py-3 rounded-2xl',
+            isUser
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted'
+          )}
+        >
+          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        </div>
+
+        {/* Validation Badge */}
+        {message.validation && (
+          <Badge
+            variant={
+              message.validation.type === 'error'
+                ? 'destructive'
+                : message.validation.type === 'warning'
+                ? 'secondary'
+                : 'default'
+            }
+            className="mt-2"
+          >
+            {message.validation.type === 'error' && '⚠️ '}
+            {message.validation.type === 'warning' && '⚡ '}
+            {message.validation.type === 'info' && 'ℹ️ '}
+            {message.validation.message}
+          </Badge>
+        )}
+
+        {/* Timestamp */}
+        <p className="text-xs text-muted-foreground mt-1">
+          {new Date(message.timestamp).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </p>
+      </div>
+    </motion.div>
   );
 }

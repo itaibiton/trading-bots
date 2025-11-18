@@ -127,3 +127,85 @@ export interface GetPricesResponse {
   data?: BinancePriceData[]
   error?: string
 }
+
+/**
+ * Paper Trading Types
+ */
+export interface TradeRequest {
+  side: 'buy' | 'sell'
+  tradingPair: string
+  quantity: number
+}
+
+export interface TradeResponse {
+  success: boolean
+  data?: {
+    tradeId: string
+    side: 'buy' | 'sell'
+    tradingPair: string
+    executedPrice: number
+    quantity: number
+    totalValue: number
+    fee: number
+    feeCurrency: string
+    newBalance: number
+    executedAt: string
+  }
+  error?: string
+}
+
+export interface TradeHistoryItem {
+  id: string
+  side: 'buy' | 'sell'
+  tradingPair: string
+  tradingMode: 'paper' | 'live'
+  executedAt: string
+  price: number
+  quantity: number
+  totalValue: number
+  fee: number
+  feeCurrency: string
+  pnl?: number
+  pnlPercentage?: number
+}
+
+export interface TradeHistoryResponse {
+  success: boolean
+  data?: {
+    trades: TradeHistoryItem[]
+    total: number
+  }
+  error?: string
+}
+
+export interface PriceResponse {
+  success: boolean
+  data?: {
+    symbol: string
+    price: number
+    timestamp: string
+  }
+  error?: string
+}
+
+/**
+ * Trading Constants
+ */
+export const SUPPORTED_TRADING_PAIRS = [
+  'BTCUSDT',
+  'ETHUSDT',
+  'SOLUSDT',
+  'BNBUSDT',
+  'XRPUSDT',
+  'ADAUSDT',
+  'DOGEUSDT',
+  'MATICUSDT',
+  'AVAXUSDT',
+  'LINKUSDT',
+] as const
+
+export type SupportedTradingPair = typeof SUPPORTED_TRADING_PAIRS[number]
+
+export const TRADING_FEE_RATE = 0.001 // 0.1%
+export const MIN_ORDER_VALUE_USDT = 10 // $10 minimum
+export const DEFAULT_SLIPPAGE_RATE = 0.002 // 0.2%

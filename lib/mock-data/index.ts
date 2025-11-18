@@ -12,14 +12,6 @@ export {
   getStrategiesByComplexity,
 } from './strategies';
 
-// AI Conversation Flow
-export {
-  conversationFlow,
-  generateAIResponse,
-  strategyRiskMapping,
-  defaultRiskSettings,
-} from './ai-responses';
-
 // Backtest Data
 export {
   dcaBacktestResult,

@@ -210,6 +210,22 @@ pnpm lint
 pnpm build
 ```
 
+## 🌀 Landing Page Animations
+
+The marketing experience at `/app/page.tsx` uses a small animation toolkit:
+
+- `components/ui/animated-background.tsx` renders mesh, particle, and grid backgrounds with `react-bits`. Update `VARIANT_CONFIG` to change colors, sizes, or blur.
+- `components/ui/counter.tsx`, `reveal.tsx`, and `magnetic-button.tsx` wrap GSAP effects. They automatically respect `prefers-reduced-motion` via `hooks/usePrefersReducedMotion.ts`.
+- Plugins register once inside `lib/gsap.ts`. Import `gsap`/`ScrollTrigger` from there whenever you need custom timelines.
+- Section animations live with their components under `components/landing/*`. Keep effects in `useEffect`, clean up timelines, and guard every animation for reduced-motion users.
+
+To extend the landing page:
+
+1. Wrap new content in `<Reveal>` for baseline scroll reveal.
+2. Reuse `<AnimatedBackground>` for subtle motion layers.
+3. Add CTA interactions with `<MagneticButton>`.
+4. Profile animations using Chrome DevTools—target 60fps, limit blur, and pause loops when the section leaves the viewport.
+
 ## 🔐 Security
 
 ### Recent Security Fixes
