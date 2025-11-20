@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MagneticButton } from "@/components/ui/magnetic-button";
 import { Reveal } from "@/components/ui/reveal";
-
+import StarBorder from "../StarBorder";
+import { HoverBorderGradient } from "../ui/hover-border-gradient";
 // 3D Card Component for the visual element
 const TradingCard = () => {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -216,15 +217,16 @@ const Hero = () => {
           </div>
 
           <div ref={ctaRef} className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
-            <MagneticButton asChild className="px-8 py-6 text-lg rounded-full">
-              <Link href="/signup" className="flex items-center gap-2">
-                Start Building Free <ArrowRight className="w-5 h-5" />
-              </Link>
-            </MagneticButton>
+            <HoverBorderGradient
+              containerClassName="rounded-full"
+              as="button"
+              className="dark:bg-black bg-white text-black dark:text-white flex items-center space-x-2"
+            >
+              <span>Aceternity UI</span>
+            </HoverBorderGradient>
+            <Button>Watch Demo</Button>
 
-            <MagneticButton intensity={0.1} variant="outline" size="lg" className="px-8 py-6 text-lg rounded-full bg-background/50 backdrop-blur-sm border-primary/20 hover:bg-primary/5">
-              <Play className="w-5 h-5 mr-2" /> Watch Demo
-            </MagneticButton>
+
           </div>
 
           <Reveal delay={0.4} className="flex flex-col sm:flex-row items-center gap-4 pt-4">

@@ -174,8 +174,8 @@ export function useAIConversation(conversationId?: string): UseAIConversationRet
         description: 'Your bot is now active and ready to trade.',
       });
 
-      // Navigate to bot dashboard or bot details
-      router.push(`/dashboard?botId=${botId}`);
+      // Navigate to the new bot's detail page
+      router.push(`/dashboard/bots/${botId}`);
     } catch (err) {
       console.error('Failed to deploy bot:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to deploy bot';

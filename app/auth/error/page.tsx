@@ -8,12 +8,13 @@ export const metadata: Metadata = {
   description: 'An error occurred during authentication',
 }
 
-export default function AuthErrorPage({
+export default async function AuthErrorPage({
   searchParams,
 }: {
-  searchParams: { message?: string }
+  searchParams: Promise<{ message?: string }>
 }) {
-  const message = searchParams.message || 'An authentication error occurred. Please try again.'
+  const params = await searchParams
+  const message = params.message || 'An authentication error occurred. Please try again.'
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">

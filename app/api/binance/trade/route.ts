@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     const ticker = await client.getSymbolPriceTicker({ symbol: normalizedPair })
     const priceData = Array.isArray(ticker) ? ticker[0] : ticker
-    const marketPrice = parseFloat(priceData.price)
+    const marketPrice = parseFloat(String(priceData.price))
 
     // Validate the trade order
     const validation = validateTradeOrder({

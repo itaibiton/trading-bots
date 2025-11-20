@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
-import type { AnimatedValue } from 'react-native'
 import { Animated, Easing } from 'react-bits'
 
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
@@ -50,7 +49,7 @@ export function AnimatedBackground({
 }: AnimatedBackgroundProps) {
   const prefersReducedMotion = usePrefersReducedMotion()
   const animatedValues = useMemo(
-    () => VARIANT_CONFIG[variant].map(() => new Animated.Value(Math.random()) as AnimatedValue),
+    () => VARIANT_CONFIG[variant].map(() => new Animated.Value(Math.random())),
     [variant]
   )
 

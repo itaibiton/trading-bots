@@ -20,6 +20,14 @@ import { TradeHistory } from '@/components/trading/TradeHistory'
 import { AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { createClient } from '@/lib/supabase/client'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 
 export default function TradingPage() {
   const {
@@ -35,7 +43,7 @@ export default function TradingPage() {
   })
 
   // Paper trading state
-  const [paperBalance, setPaperBalance] = useState<number>(10000)
+  const [paperBalance, setPaperBalance] = useState<number>(1000000)
   const [balanceLoading, setBalanceLoading] = useState(true)
   const [tradeRefreshTrigger, setTradeRefreshTrigger] = useState(0)
 
@@ -54,7 +62,7 @@ export default function TradingPage() {
           .single()
 
         if (profile) {
-          setPaperBalance(profile.paper_balance || 10000)
+          setPaperBalance(profile.paper_balance || 1000000)
         }
       }
     } catch (err) {
@@ -79,10 +87,17 @@ export default function TradingPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Trading</h1>
-        <p className="text-muted-foreground mt-2">
-          Paper trade with real market data from Binance
-        </p>
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/dashboard">Home</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Trading</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
       </div>
 
       {/* Connection Status */}

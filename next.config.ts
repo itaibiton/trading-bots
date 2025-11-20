@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  turbopack: {}, // Empty config to silence Next.js 16 Turbopack warning
   webpack: (config) => {
     config.resolve.alias = {
       ...(config.resolve.alias || {}),

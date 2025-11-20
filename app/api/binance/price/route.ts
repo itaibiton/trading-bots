@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         symbol: priceData.symbol,
-        price: parseFloat(priceData.price),
+        price: parseFloat(String(priceData.price)),
         timestamp: new Date().toISOString(),
       }
     })

@@ -5,7 +5,7 @@
 
 -- Extend the existing profiles table with TradingBot-specific columns
 ALTER TABLE profiles
-ADD COLUMN IF NOT EXISTS paper_balance DECIMAL(15, 2) DEFAULT 10000.00 NOT NULL,
+ADD COLUMN IF NOT EXISTS paper_balance DECIMAL(15, 2) DEFAULT 1000000.00 NOT NULL,
 ADD COLUMN IF NOT EXISTS paper_balance_allocated DECIMAL(15, 2) DEFAULT 0.00 NOT NULL,
 ADD COLUMN IF NOT EXISTS ai_conversations_used INTEGER DEFAULT 0 NOT NULL,
 ADD COLUMN IF NOT EXISTS ai_conversations_limit INTEGER DEFAULT 3 NOT NULL,
@@ -68,7 +68,7 @@ CREATE POLICY "Users can update their own profile"
   USING (auth.uid() = id);
 
 -- Comment
-COMMENT ON COLUMN profiles.paper_balance IS 'Virtual USDT balance for paper trading (starts at $10,000)';
+COMMENT ON COLUMN profiles.paper_balance IS 'Virtual USDT balance for paper trading (starts at $1,000,000)';
 COMMENT ON COLUMN profiles.paper_balance_allocated IS 'Amount of paper balance currently allocated to active bots';
 COMMENT ON COLUMN profiles.ai_conversations_used IS 'Number of AI bot creation conversations used this month';
 COMMENT ON COLUMN profiles.ai_conversations_limit IS 'Monthly limit for AI bot creation conversations (3 for starter, unlimited for pro)';
