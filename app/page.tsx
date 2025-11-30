@@ -1,9 +1,9 @@
-import Hero from '@/components/landing/Hero'
+import LandingHero from "@/components/landing/LandingHero";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <Hero />
+    <main>
+      <LandingHero />
     </main>
-  )
+  );
 }

@@ -1,19 +1,30 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import {
+  IBM_Plex_Sans,
+  JetBrains_Mono,
+  Space_Grotesk,
+} from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthProvider";
-import { Navbar } from "@/components/Navbar";
 import { Toaster } from "@/components/ui/toaster";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const bodySans = IBM_Plex_Sans({
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-plex-sans",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const displaySans = Space_Grotesk({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-space-grotesk",
+});
+
+const monoFont = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-jetbrains-mono",
 });
 
 export const metadata: Metadata = {
@@ -29,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${bodySans.variable} ${displaySans.variable} ${monoFont.variable} antialiased font-sans`}
       >
         <ThemeProvider
           attribute="class"
@@ -38,7 +49,6 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            {/* <Navbar /> */}
             {children}
             <Toaster />
           </AuthProvider>
